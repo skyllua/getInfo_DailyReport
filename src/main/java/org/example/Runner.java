@@ -19,13 +19,21 @@ import java.util.List;
 
 public class Runner {
     static final String link = "https://crm.ukc.loc/crm";
+    static final String linkGrafana = "http://192.168.15.182:3000/d/51PtXZ1Gk/mobileoperators?orgId=1&from=now-1d%2Fd&to=now-1d%2Fd";
+//    static final String linkGrafana = "https://grafana.ukc.gov.ua/d/51PtXZ1Gk/mobileoperators?orgId=1&from=now-1d%2Fd&to=now-1d%2Fd";
     static ChromeDriver driver;
-    static Source[] sources = new Source[3];
+    static ArrayList<Source> requests = new ArrayList<>();
+    static ArrayList<Source> calls = new ArrayList<>();
 
     public static void main(String[] args) throws AWTException {
-        sources[0] = new Source("phone", "Урядова «гаряча лінія»");
-        sources[1] = new Source("site", "Веб-сайт УКЦ");
-        sources[2] = new Source("kmu", "Урядовий портал");
+        requests.add(new Source("phone", "Урядова «гаряча лінія»"));
+        requests.add(new Source("site", "Веб-сайт УКЦ"));
+        requests.add(new Source("kmu", "Урядовий портал"));
+
+        calls.add(new Source("Kyivstar", "Киевстар"));
+        calls.add(new Source("Vodafone", "Водафон"));
+        calls.add(new Source("Lifecell", "Лайф"));
+        calls.add(new Source("Ukrtelecom", "Укртелеком"));
 
         System.out.println("PLEASE, WAIT UNTIL CHROME WILL NOT CLOSE!\n\n");
 
@@ -35,37 +43,80 @@ public class Runner {
             System.setProperty("webdriver.chrome.driver", "chromedriver/chromedriver.exe");
         driver = new ChromeDriver();
 
-        setSettings();
-        login();
-        gotoFilter();
-
-        findSource(sources[0].getName());
-        setDate();
-        useFilter();
-        sleep(1000);
-        sources[0].setCount(getCount());
-
-        findSource(sources[0].getName());
-        findSource(sources[1].getName());
-        useFilter();
-        sleep(1000);
-        sources[1].setCount(getCount());
-
-        findSource(sources[1].getName());
-        findSource(sources[2].getName());
-        useFilter();
-        sleep(1000);
-        sources[2].setCount(getCount());
-
+        getCountRequests();
+        getCountCalls();
 
         writeToFile();
 
         driver.quit();
     }
 
+    private static void getCountCalls() {
+        driver.get(linkGrafana);
+        loginIntoGrafana();
+        getCallsData();
+    }
+
+    private static void getCallsData() {
+        for (WebElement element : driver.findElementsByXPath("//div[@class='panel-container']")) {
+            String[] data = element.getText().split("\n");
+
+            for (Source call : calls) {
+                if (call.getCode().equals(data[0])) {
+                    System.out.println(data[0] + ": " + data[1]);
+                    call.setCount(data[1]);
+                }
+            }
+        }
+    }
+
+    private static void loginIntoGrafana() {
+        driver.findElementByClassName("login-form-input").sendKeys("adminUKC");
+        driver.findElementByXPath("//input[@type='password']").sendKeys("P@ssw0rd");
+        driver.findElementByXPath("//button[@aria-label='Login button']").click();
+
+        boolean isLoaded = false;
+        sleep(500);
+        while (!isLoaded) {
+            for (WebElement element : driver.findElementsByXPath("//div[@class='panel-container']")) {
+                if (element.getText().split("\n")[0].equals("Kyivstar")) isLoaded = true;
+            }
+        }
+
+        sleep(1000);
+    }
+
+    private static void getCountRequests() {
+        setSettings();
+        login();
+        gotoFilter();
+
+        findSource(requests.get(0).getName());
+        setDate();
+        useFilter();
+        sleep(1000);
+        requests.get(0).setCount(getCount());
+
+        findSource(requests.get(0).getName());
+        findSource(requests.get(1).getName());
+        useFilter();
+        sleep(1000);
+        requests.get(1).setCount(getCount());
+
+        findSource(requests.get(1).getName());
+        findSource(requests.get(2).getName());
+        useFilter();
+        sleep(1000);
+        requests.get(2).setCount(getCount());
+    }
+
     private static void writeToFile() {
         StringWriter writer = new StringWriter();
-        for (Source source : sources) {
+        for (Source source : requests) {
+            writer.write(getXml(source));
+        }
+
+        for (Source source : calls) {
             writer.write(getXml(source));
         }
 
