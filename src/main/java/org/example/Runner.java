@@ -77,6 +77,7 @@ public class Runner {
 
         boolean isLoaded = false;
         sleep(500);
+
         while (!isLoaded) {
             for (WebElement element : driver.findElementsByXPath("//div[@class='panel-container']")) {
                 if (element.getText().split("\n")[0].equals("Kyivstar")) isLoaded = true;
