@@ -19,11 +19,12 @@ import java.util.List;
 
 public class Runner {
     static final String link = "https://crm.ukc.loc/crm";
-    static final String linkGrafana = "http://192.168.15.182:3000/d/51PtXZ1Gk/mobileoperators?orgId=1&from=now-1d%2Fd&to=now-1d%2Fd";
-//    static final String linkGrafana = "https://grafana.ukc.gov.ua/d/51PtXZ1Gk/mobileoperators?orgId=1&from=now-1d%2Fd&to=now-1d%2Fd";
+    static final String linkGrafanaLocal = "http://192.168.15.182:3000/d/51PtXZ1Gk/mobileoperators?orgId=1&from=now-1d%2Fd&to=now-1d%2Fd";
+    static final String linkGrafanaGlobal = "https://grafana.ukc.gov.ua/d/51PtXZ1Gk/mobileoperators?orgId=1&from=now-1d%2Fd&to=now-1d%2Fd";
     static ChromeDriver driver;
     static ArrayList<Source> requests = new ArrayList<>();
     static ArrayList<Source> calls = new ArrayList<>();
+    static boolean isAdminPC = false;
 
     public static void main(String[] args) throws AWTException {
         requests.add(new Source("phone", "Урядова «гаряча лінія»"));
@@ -37,9 +38,10 @@ public class Runner {
 
         System.out.println("PLEASE, WAIT UNTIL CHROME WILL NOT CLOSE!\n\n");
 
-        if (new File("d:/Users/admin.UKC/Desktop/Reports/!dontDelete_chromedriver/chromedriver.exe").exists())
+        if (new File("d:/Users/admin.UKC/Desktop/Reports/!dontDelete_chromedriver/chromedriver.exe").exists()) {
+            isAdminPC = true;
             System.setProperty("webdriver.chrome.driver", "d:/Users/admin.UKC/Desktop/Reports/!dontDelete_chromedriver/chromedriver.exe");
-        else
+        } else
             System.setProperty("webdriver.chrome.driver", "chromedriver/chromedriver.exe");
         driver = new ChromeDriver();
 
@@ -52,7 +54,9 @@ public class Runner {
     }
 
     private static void getCountCalls() {
-        driver.get(linkGrafana);
+        if (isAdminPC) driver.get(linkGrafanaLocal);
+        else driver.get(linkGrafanaGlobal);
+
         loginIntoGrafana();
         getCallsData();
     }
@@ -123,6 +127,7 @@ public class Runner {
 
         try {
             FileWriter fw = new FileWriter("!!!result.xml");
+            if (isAdminPC) fw = new FileWriter("d:/Users/admin.UKC/Desktop/Reports/!!!result.xml");
             fw.write(writer.toString());
             fw.close();
         } catch (IOException e) {
